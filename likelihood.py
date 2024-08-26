@@ -3,31 +3,38 @@ import matplotlib.pyplot as plt
 from scipy.stats import norm
 import emcee
 import os
+import sys
 
 random_seed = 1
 
 np.random.seed(random_seed)
 
+## variables: sigma_true, n_stars, age_unc
+## make one plot for sigma_true = 1, one plot for sigma_true = 0.1
+
 """
 assume a true distribution of oxygen-onset times
 """
 mu_true = 5  # [Gyr]
-sigma_true = 2  # [Gyr]
+
+sigma_true = float(sys.argv[1])  # [Gyr]
 
 """
 draw a dataset
 """
-n_stars = 25
-age_unc = 0.1  # [Gyr]
 
-working_dir = "mu{}_sigma{}_ageunc{}_Nstars{}".format(
+n_stars = int(sys.argv[2])
+age_unc = float(sys.argv[3])  # [Gyr]
+
+
+working_dir = "results/mu{}_sigma{}_ageunc{}_Nstars{}".format(
     mu_true, sigma_true, age_unc, n_stars
 )
 if not os.path.exists(working_dir):
     os.mkdir(working_dir)
 
 # draw a sample of true ages
-true_ages = np.random.uniform(0, 10, size=n_stars)
+true_ages = np.random.uniform(0, 13, size=n_stars)
 
 # add Gaussian noise
 sampled_ages = true_ages + np.random.normal(scale=age_unc, size=n_stars)
@@ -150,12 +157,13 @@ print("running burn in!")
 state = sampler.run_mcmc(p0, 200)
 sampler.reset()
 print("running production chain!")
-sampler.run_mcmc(p0, 1000)
+sampler.run_mcmc(p0, 500)
 print("done")
 
 samples = sampler.flatchain
 mu_samples = samples[:, 0]
 sigma_samples = samples[:, 1]
+np.save(f"{working_dir}/seed{random_seed}_chains.npy", samples)
 
 """
 plot results
