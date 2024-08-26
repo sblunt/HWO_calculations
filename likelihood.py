@@ -15,7 +15,7 @@ np.random.seed(random_seed)
 """
 assume a true distribution of oxygen-onset times
 """
-mu_true = 5  # [Gyr]
+mu_true = 2  # [Gyr]
 
 sigma_true = float(sys.argv[1])  # [Gyr]
 

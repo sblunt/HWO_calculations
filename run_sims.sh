@@ -1,6 +1,6 @@
-sigma_true=1
-n_stars=(10 25 50 100)
-age_unc=(2 1 0.5 0.1)
+sigma_true=2 # run sims for 2, 0.5, 0.1
+n_stars=(15 25 50 60)
+age_unc=(0.2 1 5)
 for i in ${n_stars[@]};
 do
     for j in ${age_unc[@]}; 
