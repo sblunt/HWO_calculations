@@ -15,20 +15,20 @@ np.random.seed(random_seed)
 """
 assume a true distribution of oxygen-onset times
 """
-mu_true = 2  # [Gyr]
+mu_true = float(sys.argv[1])  # [Gyr]
 
-sigma_true = float(sys.argv[1])  # [Gyr]
+sigma_true = float(sys.argv[2])  # [Gyr]
 
 """
 draw a dataset
 """
 
-n_stars = int(sys.argv[2])
-age_unc = float(sys.argv[3])  # [Gyr]
+n_stars = int(sys.argv[3])
+age_unc_percent = float(sys.argv[4])  # percentage
 
 
-working_dir = "results/mu{}_sigma{}_ageunc{}_Nstars{}".format(
-    mu_true, sigma_true, age_unc, n_stars
+working_dir = "results/mu{}_sigma{}_ageunc{}%_Nstars{}".format(
+    mu_true, sigma_true, int(100 * age_unc_percent), n_stars
 )
 if not os.path.exists(working_dir):
     os.mkdir(working_dir)
@@ -37,13 +37,15 @@ if not os.path.exists(working_dir):
 true_ages = np.random.uniform(0, 13, size=n_stars)
 
 # add Gaussian noise
-sampled_ages = true_ages + np.random.normal(scale=age_unc, size=n_stars)
-age_uncertainties = np.ones_like(sampled_ages) * age_unc
+sampled_ages = true_ages + np.random.normal(
+    scale=age_unc_percent * true_ages, size=n_stars
+)
+age_uncertainties = np.ones_like(sampled_ages) * age_unc_percent * true_ages
 
 # assign each star a "detection" or "nondetection" of O3 based on the assumed
 # true distribution
 random_comparions = np.random.normal(mu_true, sigma_true, size=n_stars)
-o3_detections = sampled_ages > random_comparions
+o3_detections = true_ages > random_comparions
 
 # plot the true distribution & the dataset
 ages2plot = np.linspace(0, 13, int(1e4))
@@ -72,16 +74,16 @@ for i, measured_age in enumerate(sampled_ages):
         a = ax[1]
     a.scatter(
         true_ages[i],
-        norm.pdf(true_ages[i], measured_age, age_unc)
-        / np.max(norm.pdf(ages2plot, measured_age, age_unc))
+        norm.pdf(true_ages[i], measured_age, age_unc_percent * true_ages[i])
+        / np.max(norm.pdf(ages2plot, measured_age, age_unc_percent * true_ages[i]))
         * np.max(norm.pdf(ages2plot, mu_true, sigma_true)),
         marker="*",
         color=plt.get_cmap("prism")(i / n_stars),
     )
     a.plot(
         ages2plot,
-        norm.pdf(ages2plot, measured_age, age_unc)
-        / np.max(norm.pdf(ages2plot, measured_age, age_unc))
+        norm.pdf(ages2plot, measured_age, age_unc_percent * true_ages[i])
+        / np.max(norm.pdf(ages2plot, measured_age, age_unc_percent * true_ages[i]))
         * np.max(norm.pdf(ages2plot, mu_true, sigma_true)),
         color=plt.get_cmap("prism")(i / n_stars),
         ls=ls,

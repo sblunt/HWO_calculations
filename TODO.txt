@@ -6,6 +6,5 @@ We can use an equation from the 2019 GPIES midcourse stats paper: (eq 9 of Niels
 
 TODO:
 
-- assume percentage uncertainty on age rather than absolute number (10-20% from astroseismo)
 - constrain lower limit on oxygen onset time assuming oxygen never appears
 - constrain oxygen duration rather than oxygen onset time
