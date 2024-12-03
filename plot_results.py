@@ -8,8 +8,8 @@ import matplotlib.pyplot as plt
 
 seed = 1
 
-mu_true = 13.0
-sigma_true = 0.001
+mu_true = 3.0
+sigma_true = 2.0
 
 n_stars = np.array([1, 3, 5, 10, 20, 30, 60])
 age_unc = np.array([0.2, 0.5, 0.7, 1])
