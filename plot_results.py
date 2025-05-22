@@ -8,11 +8,13 @@ import matplotlib.pyplot as plt
 
 seed = 1
 
-mu_true = 3.0
-sigma_true = 2.0
+mu_true = 2.0
+sigma_true = 0.5
 
-n_stars = np.array([1, 3, 5, 10, 20, 30, 60])
-age_unc = np.array([0.2, 0.5, 0.7, 1])
+#  mu2.0_sigma0.5_ageunc50%_Nstars60
+
+n_stars = np.array([60])
+age_unc = np.array([0.5])
 
 fig, ax = plt.subplots(2, 1, sharex=True)
 plt.subplots_adjust(hspace=0)
@@ -60,3 +62,5 @@ ax[0].legend()
 ax[1].set_ylabel("$\\sigma$ precision [Gyr]")
 ax[1].set_xlabel("number of Earth analogs in sample")
 plt.savefig(f"results/summary_mu{mu_true}_sigma{sigma_true}.png", dpi=250)
+
+print(f"results/summary_mu{mu_true}_sigma{sigma_true}.png")

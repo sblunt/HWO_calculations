@@ -78,15 +78,17 @@ for i, measured_age in enumerate(sampled_ages):
         / np.max(norm.pdf(ages2plot, measured_age, age_unc_percent * true_ages[i]))
         * np.max(norm.pdf(ages2plot, mu_true, sigma_true)),
         marker="*",
-        color=plt.get_cmap("prism")(i / n_stars),
+        color="rebeccapurple",  # plt.get_cmap("prism")(i / n_stars),
+        # alpha=0.2,
     )
     a.plot(
         ages2plot,
         norm.pdf(ages2plot, measured_age, age_unc_percent * true_ages[i])
         / np.max(norm.pdf(ages2plot, measured_age, age_unc_percent * true_ages[i]))
         * np.max(norm.pdf(ages2plot, mu_true, sigma_true)),
-        color=plt.get_cmap("prism")(i / n_stars),
+        color="rebeccapurple",  # plt.get_cmap("prism")(i / n_stars),
         ls=ls,
+        alpha=0.2,
     )
 plt.xlabel("age [Gyr]")
 plt.savefig("{}/seed{}_sample.png".format(working_dir, random_seed), dpi=250)
@@ -103,10 +105,6 @@ def single_star_loglike(params_arr, star_age, star_age_unc, star_meas_o3):
     # O3 measured in star: we want the prob. that we would measure O3
     # in this star given the proposal distribution and the age unc.
     if star_meas_o3:
-        # likelihood = prob. that age (characterized by measurement unc. distribution)
-        # is greater than population distribution (characterized by proposal distribution).
-        # This is the same as the prob. that the difference of the two Gaussians (which is
-        # also Gaussian) is greater than 0
         loglike = norm.logcdf(
             0, loc=mu_pop - star_age, scale=np.sqrt(sigma_pop**2 + star_age_unc**2)
         )
@@ -114,7 +112,9 @@ def single_star_loglike(params_arr, star_age, star_age_unc, star_meas_o3):
     # no O3 measured (opposite of above)
     else:
         loglike = norm.logcdf(
-            0, loc=star_age - mu_pop, scale=np.sqrt(sigma_pop**2 + star_age_unc**2)
+            0,
+            loc=star_age - mu_pop,
+            scale=np.sqrt(sigma_pop**2 + star_age_unc**2),
         )
 
     return loglike
@@ -141,7 +141,13 @@ def logposterior(params_arr, star_ages_arr, star_age_unc_arr, star_meas_o3_arr):
     if sigma_pop < 0 or sigma_pop > 13:
         return -np.inf
 
-    return loglike(params_arr, star_ages_arr, star_age_unc_arr, star_meas_o3_arr)
+    total_loglike = loglike(
+        params_arr, star_ages_arr, star_age_unc_arr, star_meas_o3_arr
+    )
+    if np.isnan(total_loglike):
+        return -np.inf
+
+    return total_loglike
 
 
 """
@@ -149,23 +155,27 @@ run mcmc!
 """
 
 ndim, nwalkers = 2, 100
+n_burn = 200
+n_prod = 500
 
 p0 = np.random.uniform(0, 13, size=(nwalkers, ndim))
 sampler = emcee.EnsembleSampler(
     nwalkers, ndim, logposterior, args=(sampled_ages, age_uncertainties, o3_detections)
 )
 
-print("running burn in!")
-state = sampler.run_mcmc(p0, 200)
-sampler.reset()
-print("running production chain!")
-sampler.run_mcmc(p0, 500)
-print("done")
+# print("running burn in!")
+# state = sampler.run_mcmc(p0, n_burn)
+# sampler.reset()
+# print("running production chain!")
+# sampler.run_mcmc(p0, n_prod)
+# print("done")
 
-samples = sampler.flatchain
+# samples = sampler.flatchain
+# np.save(f"{working_dir}/seed{random_seed}_chains.npy", samples)
+
+samples = np.load(f"{working_dir}/seed{random_seed}_chains.npy")
 mu_samples = samples[:, 0]
 sigma_samples = samples[:, 1]
-np.save(f"{working_dir}/seed{random_seed}_chains.npy", samples)
 
 """
 plot results
@@ -173,13 +183,57 @@ plot results
 
 fig, ax = plt.subplots(2, 1)
 ax[0].hist(
-    mu_samples, bins=50, color="rebeccapurple", alpha=0.5, label="recovered posterior"
+    mu_samples,
+    bins=50,
+    color="rebeccapurple",
+    alpha=0.5,
+    label="recovered posterior",
+    density=True,
 )
 ax[0].axvline(mu_true, color="k", label="true value")
-ax[0].legend()
-ax[0].set_xlabel("$\\mu_{\\mathrm{{population}}}$ [Gyr]")
-ax[1].set_xlabel(("$\\sigma_{\\mathrm{{population}}}$ [Gyr]"))
-ax[1].hist(sigma_samples, bins=50, color="rebeccapurple", alpha=0.5)
+ax[0].set_xlabel("$\\mu_{\\mathrm{{pop}}}$ [Gyr]")
+ax[1].set_xlabel(("$\\sigma_{\\mathrm{{pop}}}$ [Gyr]"))
+ax[1].hist(sigma_samples, bins=50, color="rebeccapurple", alpha=0.5, density=True)
 ax[1].axvline(sigma_true, color="k")
+ax[0].set_ylabel("prob.")
+ax[1].set_ylabel("prob.")
+
+
+mu_cis = np.quantile(mu_samples, [0.16, 0.84])
+sigma_cis = np.quantile(sigma_samples, [0.16, 0.84])
+# ax[0].axvline(mu_cis[0], alpha=0.5, ls="--", color="k", label="$\mu$ precision")
+# ax[0].axvline(mu_cis[1], alpha=0.5, ls="--", color="k")
+
+plt.sca(ax[0])
+plt.annotate(
+    "",
+    xy=(mu_cis[0], 0.5),
+    xytext=(mu_cis[1], 0.5),
+    arrowprops=dict(arrowstyle="<->"),
+)
+plt.sca(ax[1])
+plt.annotate(
+    "",
+    xy=(sigma_cis[0], 0.5),
+    xytext=(sigma_cis[1], 0.5),
+    arrowprops=dict(arrowstyle="<->"),
+)
+ax[0].legend()
+
+# ax[1].axvspan(sigma_cis[0], sigma_cis[1], alpha=0.5, color="purple")
 plt.tight_layout()
 plt.savefig("{}/seed{}_recovery.png".format(working_dir, random_seed), dpi=250)
+
+"""
+plot chains to assess convergence
+"""
+
+fig, ax = plt.subplots(2, 1)
+
+mu_reshaped = mu_samples.reshape((nwalkers, n_prod))
+sigma_reshaped = sigma_samples.reshape((nwalkers, n_prod))
+
+for i in range(nwalkers):
+    ax[0].plot(mu_reshaped[i, :], color="k", alpha=0.01)
+    ax[1].plot(sigma_reshaped[i, :], color="k", alpha=0.01)
+plt.savefig("{}/seed{}_chains.png".format(working_dir, random_seed), dpi=250)
